@@ -60,6 +60,7 @@ public class BulkReadCardDataOperationRunner implements Runnable,
     private DatabaseHelper databaseHelper;
 
     private CardData lastCardData;
+    private long lastCardDataTime;
     private volatile int numberOfCardsRead;
 
     private volatile boolean stop;
@@ -101,10 +102,11 @@ public class BulkReadCardDataOperationRunner implements Runnable,
     @Override
     @WorkerThread
     public void onResult(CardData cardData) {
-        if (cardData.equals(lastCardData)) {
+        if (cardData.equals(lastCardData) && System.currentTimeMillis() < lastCardDataTime + 5000) {
             return;
         }
         lastCardData = cardData;
+        lastCardDataTime = System.currentTimeMillis();
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         if (sharedPref.getBoolean("pref_key_bulk_read_vibrate", true)) {

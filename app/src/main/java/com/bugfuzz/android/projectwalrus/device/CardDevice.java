@@ -54,7 +54,7 @@ public abstract class CardDevice {
 
     private String status;
 
-    CardDevice(Context context, String status) {
+    protected CardDevice(Context context, String status) {
         this.context = context;
 
         id = nextId++;
