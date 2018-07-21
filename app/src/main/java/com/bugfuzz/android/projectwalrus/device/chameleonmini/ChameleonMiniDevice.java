@@ -37,12 +37,18 @@ import com.bugfuzz.android.projectwalrus.device.ReadCardDataOperation;
 import com.bugfuzz.android.projectwalrus.device.UsbCardDevice;
 import com.bugfuzz.android.projectwalrus.device.WriteOrEmulateCardDataOperation;
 import com.bugfuzz.android.projectwalrus.device.chameleonmini.ui.ChameleonMiniActivity;
+import com.bugfuzz.android.projectwalrus.util.MiscUtils;
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
+import com.google.common.primitives.Bytes;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.concurrent.Semaphore;
+import java.util.logging.Logger;
+
+import javassist.bytecode.ByteArray;
 
 @CardDevice.Metadata(
         name = "Chameleon Mini",
@@ -318,9 +324,39 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                 chameleonMiniDevice.setReceiving(true);
 
                 try {
+                    MifareCardData mifareCardData = (MifareCardData) getCardData();
+
+                    byte[] mifare1k = new byte[0];
+                    for (int i = 0; i < 64; ++i) {
+                        MifareCardData.Block block = mifareCardData.getBlocks().get(i);
+                        byte[] toAdd;
+                        if (block != null) {
+                            toAdd = block.data;
+                        } else {
+                            toAdd = new byte[16];
+                        }
+                        mifare1k = Bytes.concat(mifare1k, toAdd);
+                    }
+                    Logger.getAnonymousLogger().info("Mifare1k result: " +
+                            MiscUtils.bytesToHex(mifare1k, false));
+
+                    /*
+
+
                     chameleonMiniDevice.send("CONFIG=MF_CLASSIC_1K");
 
-                    chameleonMiniDevice.receive(new WatchdogReceiveSink<String, Boolean>(3000) {
+                    String line = chameleonMiniDevice.receive(1000);
+
+                    chameleonMiniDevice.setBytewise(true);
+
+                    chameleonMiniDevice.sendByte((byte) 'A');
+
+
+                    byte s = chameleonMiniDevice.receiveByte(1000);
+
+                    /*****/
+
+                    /*chameleonMiniDevice.receive(new WatchdogReceiveSink<String, Boolean>(3000) {
                         private int state;
 
                         @Override
@@ -370,7 +406,7 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                         public boolean wantsMore() {
                             return shouldContinueCallback.shouldContinue();
                         }
-                    });
+                    });*/
                 } finally {
                     chameleonMiniDevice.setReceiving(false);
                 }
