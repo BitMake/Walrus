@@ -36,35 +36,35 @@ import com.bugfuzz.android.projectwalrus.device.LineBasedUsbSerialCardDevice;
 import com.bugfuzz.android.projectwalrus.device.ReadCardDataOperation;
 import com.bugfuzz.android.projectwalrus.device.UsbCardDevice;
 import com.bugfuzz.android.projectwalrus.device.WriteOrEmulateCardDataOperation;
-import com.bugfuzz.android.projectwalrus.device.chameleonmini.ui.ChameleonMiniActivity;
+import com.bugfuzz.android.projectwalrus.device.chameleonmini.ui.ChameleonMiniRevGActivity;
 import com.bugfuzz.android.projectwalrus.util.MiscUtils;
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 import com.google.common.primitives.Bytes;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
-
-import javassist.bytecode.ByteArray;
 
 @CardDevice.Metadata(
-        name = "Chameleon Mini",
+        name = "Chameleon Mini Rev.G",
         iconId = R.drawable.drawable_chameleon_mini,
         supportsRead = {MifareCardData.class},
         supportsWrite = {},
         supportsEmulate = {MifareCardData.class}
 )
-@UsbCardDevice.UsbIds({@UsbCardDevice.UsbIds.Ids(vendorId = 0x16d0, productId = 0x4b2)})
-public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
+
+@UsbCardDevice.UsbIds({
+        @UsbCardDevice.UsbIds.Ids(vendorId = 0x16d0, productId = 0x4b2), //Chameleon Mini Rev.G
+})
+
+public class ChameleonMiniRevGDevice extends LineBasedUsbSerialCardDevice
         implements CardDevice.Versioned {
 
     private final Semaphore semaphore = new Semaphore(1);
 
-    public ChameleonMiniDevice(Context context, UsbDevice usbDevice) throws IOException {
+    public ChameleonMiniRevGDevice(Context context, UsbDevice usbDevice) throws IOException {
         super(context, usbDevice, "\r\n", "ISO-8859-1", context.getString(R.string.idle));
     }
 
@@ -116,7 +116,7 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
 
     @Override
     public Intent getDeviceActivityIntent(Context context) {
-        return ChameleonMiniActivity.getStartActivityIntent(context, this);
+        return ChameleonMiniRevGActivity.getStartActivityIntent(context, this);
     }
 
     @Override
@@ -176,20 +176,20 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
         public void execute(final Context context,
                 final ShouldContinueCallback shouldContinueCallback, final ResultSink resultSink)
                 throws IOException {
-            final ChameleonMiniDevice chameleonMiniDevice =
-                    (ChameleonMiniDevice) getCardDeviceOrThrow();
+            final ChameleonMiniRevGDevice chameleonMiniRevGDevice =
+                    (ChameleonMiniRevGDevice) getCardDeviceOrThrow();
 
-            if (!chameleonMiniDevice.tryAcquireAndSetStatus(context.getString(R.string.reading))) {
+            if (!chameleonMiniRevGDevice.tryAcquireAndSetStatus(context.getString(R.string.reading))) {
                 throw new IOException(context.getString(R.string.device_busy));
             }
 
             try {
-                chameleonMiniDevice.setReceiving(true);
+                chameleonMiniRevGDevice.setReceiving(true);
 
                 try {
-                    chameleonMiniDevice.send("CONFIG=ISO14443A_READER");
+                    chameleonMiniRevGDevice.send("CONFIG=ISO14443A_READER");
 
-                    chameleonMiniDevice.receive(new WatchdogReceiveSink<String, Void>(3000) {
+                    chameleonMiniRevGDevice.receive(new WatchdogReceiveSink<String, Void>(3000) {
                         private int state;
 
                         private short atqa;
@@ -205,7 +205,7 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                                                 R.string.command_error, "CONFIG=", in));
                                     }
 
-                                    chameleonMiniDevice.send("TIMEOUT=2");
+                                    chameleonMiniRevGDevice.send("TIMEOUT=2");
 
                                     ++state;
                                     break;
@@ -216,7 +216,7 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                                                 R.string.command_error, "TIMEOUT=", in));
                                     }
 
-                                    chameleonMiniDevice.send("IDENTIFY");
+                                    chameleonMiniRevGDevice.send("IDENTIFY");
 
                                     ++state;
                                     break;
@@ -229,7 +229,7 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
 
                                         case "203:TIMEOUT":
                                             resetWatchdog();
-                                            chameleonMiniDevice.send("IDENTIFY");
+                                            chameleonMiniRevGDevice.send("IDENTIFY");
                                             break;
 
                                         default:
@@ -271,7 +271,7 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
 
                                     resetWatchdog();
 
-                                    chameleonMiniDevice.send("IDENTIFY");
+                                    chameleonMiniRevGDevice.send("IDENTIFY");
 
                                     state = 2;
                                     break;
@@ -286,10 +286,10 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                         }
                     });
                 } finally {
-                    chameleonMiniDevice.setReceiving(false);
+                    chameleonMiniRevGDevice.setReceiving(false);
                 }
             } finally {
-                chameleonMiniDevice.releaseAndSetStatus();
+                chameleonMiniRevGDevice.releaseAndSetStatus();
             }
         }
 
@@ -313,16 +313,16 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                 throw new RuntimeException("Can't write");
             }
 
-            final ChameleonMiniDevice chameleonMiniDevice =
-                    (ChameleonMiniDevice) getCardDeviceOrThrow();
+            final ChameleonMiniRevGDevice chameleonMiniRevGDevice =
+                    (ChameleonMiniRevGDevice) getCardDeviceOrThrow();
 
-            if (!chameleonMiniDevice.tryAcquireAndSetStatus(
+            if (!chameleonMiniRevGDevice.tryAcquireAndSetStatus(
                     context.getString(R.string.emulating))) {
                 throw new IOException(context.getString(R.string.device_busy));
             }
 
             try {
-                chameleonMiniDevice.setReceiving(true);
+                chameleonMiniRevGDevice.setReceiving(true);
 
                 try {
                     MifareCardData mifareCardData = (MifareCardData) getCardData();
@@ -336,11 +336,11 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                     // TODO: prompt user for card slot or use default
                     int slot =
                             PreferenceManager.getDefaultSharedPreferences(context)
-                                    .getInt(ChameleonMiniActivity.DEFAULT_SLOT_KEY,
+                                    .getInt(ChameleonMiniRevGActivity.DEFAULT_SLOT_KEY,
                                             1);
-                    chameleonMiniDevice.send(chameleonMiniSetting + slot);
-                    String lineSetting = chameleonMiniDevice.receive(1000);
-                    if (!lineSetting.equals("100:OK")) {
+                    chameleonMiniRevGDevice.send(chameleonMiniSetting + slot);
+                    String lineSetting = chameleonMiniRevGDevice.receive(1000);
+                    if (lineSetting == null || !lineSetting.equals("100:OK")) {
                         throw new IOException(context.getString(
                                 R.string.command_error, chameleonMiniSetting, lineSetting));
                     }
@@ -354,9 +354,9 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                     } else {
                         throw new IOException("Failed to set Chameleon Mini card type using CONFIG= command");
                     }
-                    chameleonMiniDevice.send(chameleonMiniConfig);
-                    String lineConfig = chameleonMiniDevice.receive(1000);
-                    if (!lineConfig.equals("100:OK")) {
+                    chameleonMiniRevGDevice.send(chameleonMiniConfig);
+                    String lineConfig = chameleonMiniRevGDevice.receive(1000);
+                    if (lineConfig == null || !lineConfig.equals("100:OK")) {
                         throw new IOException(context.getString(
                                 R.string.command_error, chameleonMiniConfig, lineConfig));
                     }
@@ -377,20 +377,20 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                             MiscUtils.bytesToHex(mifare1k, false));
 
                     // Issue chameleon mini Upload command
-                    chameleonMiniDevice.send(chameleonMiniUpload);
-                    String lineUpload = chameleonMiniDevice.receive(1000);
-                    if (!lineUpload.equals("110:WAITING FOR XMODEM")) {
+                    chameleonMiniRevGDevice.send(chameleonMiniUpload);
+                    String lineUpload = chameleonMiniRevGDevice.receive(1000);
+                    if (lineUpload == null || !lineUpload.equals("110:WAITING FOR XMODEM")) {
                         throw new IOException(context.getString(
                                 R.string.command_error, chameleonMiniUpload, lineUpload));
                     }
 
                     // Switch to bytewise mode and send Mifare1k card data to chameleon mini via XModem
-                    chameleonMiniDevice.setBytewise(true);
+                    chameleonMiniRevGDevice.setBytewise(true);
                     int currentBlock = 1;
                     byte[] dataBlock;
 
                     while(true){
-                        byte result = chameleonMiniDevice.receiveByte(1000);
+                        byte result = chameleonMiniRevGDevice.receiveByte(1000);
 
                         switch (result){
                             // if 21 = <NAK>
@@ -409,40 +409,40 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                         // Check if the current block is the last, if it is send EOT
                         int totalBlocks = mifare1k.length/128;
                         if (currentBlock - 1 == totalBlocks){
-                            chameleonMiniDevice.sendByte((byte)0x04);
+                            chameleonMiniRevGDevice.sendByte((byte)0x04);
                             break;
                         }
 
                         // Send current block
-                        chameleonMiniDevice.sendByte((byte)0x01);
-                        chameleonMiniDevice.sendByte((byte)currentBlock);
-                        chameleonMiniDevice.sendByte((byte)(255 - currentBlock));
+                        chameleonMiniRevGDevice.sendByte((byte)0x01);
+                        chameleonMiniRevGDevice.sendByte((byte)currentBlock);
+                        chameleonMiniRevGDevice.sendByte((byte)(255 - currentBlock));
                         int i;
                         int checkSum = 0;
                         for (i=0;i<128;i++){
-                            chameleonMiniDevice.sendByte(mifare1k[(currentBlock-1)*128+i]);
+                            chameleonMiniRevGDevice.sendByte(mifare1k[(currentBlock-1)*128+i]);
                             checkSum = checkSum + mifare1k[(currentBlock-1)*128+i];
                         }
-                        chameleonMiniDevice.sendByte((byte)checkSum);
+                        chameleonMiniRevGDevice.sendByte((byte)checkSum);
                     }
 
 
                     /*
 
-                    chameleonMiniDevice.send("CONFIG=MF_CLASSIC_1K");
+                    chameleonMiniRevGDevice.send("CONFIG=MF_CLASSIC_1K");
 
-                    String line = chameleonMiniDevice.receive(1000);
+                    String line = chameleonMiniRevGDevice.receive(1000);
 
-                    chameleonMiniDevice.setBytewise(true);
+                    chameleonMiniRevGDevice.setBytewise(true);
 
-                    chameleonMiniDevice.sendByte((byte) 'A');
+                    chameleonMiniRevGDevice.sendByte((byte) 'A');
 
 
-                    byte s = chameleonMiniDevice.receiveByte(1000);
+                    byte s = chameleonMiniRevGDevice.receiveByte(1000);
 
                     /*****/
 
-                    /*chameleonMiniDevice.receive(new WatchdogReceiveSink<String, Boolean>(3000) {
+                    /*chameleonMiniRevGDevice.receive(new WatchdogReceiveSink<String, Boolean>(3000) {
                         private int state;
 
                         @Override
@@ -456,9 +456,9 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
 
                                     int slot =
                                             PreferenceManager.getDefaultSharedPreferences(context)
-                                                    .getInt(ChameleonMiniActivity.DEFAULT_SLOT_KEY,
+                                                    .getInt(ChameleonMiniRevGActivity.DEFAULT_SLOT_KEY,
                                                             1);
-                                    chameleonMiniDevice.send("SETTING=" + slot);
+                                    chameleonMiniRevGDevice.send("SETTING=" + slot);
 
                                     ++state;
                                     break;
@@ -470,7 +470,7 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                                     }
 
                                     MifareCardData mifareCardData = (MifareCardData) getCardData();
-                                    chameleonMiniDevice.send(
+                                    chameleonMiniRevGDevice.send(
                                             "UID=" + String.format("%08x", mifareCardData.uid));
 
                                     ++state;
@@ -494,10 +494,10 @@ public class ChameleonMiniDevice extends LineBasedUsbSerialCardDevice
                         }
                     });*/
                 } finally {
-                    chameleonMiniDevice.setReceiving(false);
+                    chameleonMiniRevGDevice.setReceiving(false);
                 }
             } finally {
-                chameleonMiniDevice.releaseAndSetStatus();
+                chameleonMiniRevGDevice.releaseAndSetStatus();
             }
         }
     }
